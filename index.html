@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Fun 7 互動拼句字卡大屏</title>
+  <!-- Google Fonts: Fredoka for rounded English, Noto Sans TC for Chinese -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Noto+Sans+TC:wght@400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Canvas for confetti celebrations -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- SVG Background decorations (Stars, Circles) to give a Neobrutalism vibe -->
+  <svg class="bg-decor star-top-left" viewBox="0 0 24 24">
+    <path d="M12,2L14.8,8.2L21.5,8.8L16.4,13.2L18,19.8L12,16.2L6,19.8L7.6,13.2L2.5,8.8L9.2,8.2L12,2Z"/>
+  </svg>
+  <svg class="bg-decor star-bottom-right" viewBox="0 0 24 24">
+    <path d="M12,2L14.8,8.2L21.5,8.8L16.4,13.2L18,19.8L12,16.2L6,19.8L7.6,13.2L2.5,8.8L9.2,8.2L12,2Z"/>
+  </svg>
+
+  <header>
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-emoji">🧩</span>
+        <h1>Super Fun 7 字卡拼拼樂</h1>
+      </div>
+      <div class="lesson-selector">
+        <button class="btn btn-lesson active" data-lesson="1">L1: Where From</button>
+        <button class="btn btn-lesson" data-lesson="2">L2: Free Time</button>
+        <button class="btn btn-lesson" data-lesson="3">L3: How Much</button>
+        <button class="btn btn-lesson" data-lesson="4">L4: Breakfast</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="mode-toggle">
+        <button class="btn btn-mode active" id="btn-mode-sandbox">
+          <span class="btn-icon">🎨</span>自由沙盒
+        </button>
+        <button class="btn btn-mode" id="btn-mode-puzzle">
+          <span class="btn-icon">🎯</span>句型挑戰
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left panel for puzzle navigation or custom card tools -->
+    <aside id="control-panel">
+      <!-- Sentence Puzzle Mode Sub-panel -->
+      <div id="puzzle-menu" class="panel-section hidden">
+        <h2>選擇挑戰句型</h2>
+        <div class="sentence-list" id="sentence-buttons-container">
+          <!-- Dynamically populated -->
+        </div>
+        <div class="target-translation-box">
+          <div class="label">中文提示：</div>
+          <div id="target-translation" class="translation-text">請選擇一個句子開始挑戰！</div>
+        </div>
+      </div>
+
+      <!-- Sandbox Mode Sub-panel -->
+      <div id="sandbox-menu" class="panel-section">
+        <h2>字卡工具箱</h2>
+        <div class="tool-group">
+          <label for="custom-card-text">自訂字卡文字：</label>
+          <div class="input-row">
+            <input type="text" id="custom-card-text" placeholder="輸入單字/標點..." maxlength="30">
+            <button class="btn btn-primary" id="btn-add-custom">新增</button>
+          </div>
+        </div>
+        
+        <div class="parts-of-speech-guide">
+          <h3>詞性色彩說明</h3>
+          <ul class="pos-list">
+            <li><span class="badge pos-subject">主詞 / 人稱</span></li>
+            <li><span class="badge pos-verb">動詞 / 動作</span></li>
+            <li><span class="badge pos-noun">名詞 / 地方 / 食物</span></li>
+            <li><span class="badge pos-adjective">形容詞 / 數量</span></li>
+            <li><span class="badge pos-wh">問句詞 / Wh-</span></li>
+            <li><span class="badge pos-punctuation">標點符號</span></li>
+            <li><span class="badge pos-other">其他單字</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- System Actions -->
+      <div class="panel-section actions-section">
+        <h2>系統操作</h2>
+        <div class="actions-grid">
+          <button class="btn btn-action btn-danger" id="btn-reset">
+            <span>🔄</span> 重置畫布
+          </button>
+          <button class="btn btn-action btn-warning" id="btn-scatter">
+            <span>🌀</span> 打散字卡
+          </button>
+          <button class="btn btn-action btn-success" id="btn-check-puzzle">
+            <span>✅</span> 檢查句子
+          </button>
+          <button class="btn btn-action btn-info" id="btn-speak-all">
+            <span>🔊</span> 唸出整句
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main board area -->
+    <section id="game-container">
+      <!-- Target guidance for sentence building in Puzzle Mode -->
+      <div id="puzzle-guidance-bar" class="hidden">
+        <span class="guidance-title">將字卡拖入下方虛線框中排列：</span>
+        <button class="btn btn-sm btn-info" id="btn-show-hint">💡 顯示提示</button>
+      </div>
+
+      <!-- The Sandbox Work Board -->
+      <div id="workspace">
+        <!-- Target slot area for puzzle alignment -->
+        <div id="puzzle-slots-container" class="hidden">
+          <!-- Dynamically sized target slot placeholders -->
+        </div>
+
+        <!-- Dynamic cards will be created here -->
+        <div id="cards-container"></div>
+      </div>
+
+      <!-- The bottom card tray (drawer) -->
+      <div id="card-tray">
+        <div class="tray-title">
+          <span>📦 字卡庫 (可往上拖曳到畫布中)</span>
+          <span id="tray-count" class="badge">0 張</span>
+        </div>
+        <div id="tray-cards-container" class="tray-grid">
+          <!-- Unused card pool -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Audio synthesizers logic inside app.js -->
+  <script src="app.js"></script>
+</body>
+</html>
