@@ -265,6 +265,12 @@ main {
   background-color: var(--color-info);
   border-color: var(--border-color);
 }
+.btn-sentence-select.solved {
+  background-color: var(--color-success);
+}
+.btn-sentence-select.active.solved {
+  background-color: var(--color-success);
+}
 
 .target-translation-box {
   margin-top: 12px;
@@ -1086,6 +1092,7 @@ class WordCardsApp {
     // Puzzle state
     this.currentPuzzleIndex = null;
     this.puzzleTokens = []; // Target order of strings
+    this.solvedSentences = {}; // lessonNum -> Set of solved indices
     
     // DOM Elements
     this.workspace = document.getElementById('workspace');
@@ -1153,10 +1160,13 @@ class WordCardsApp {
       this.boundaryCheckAllCards();
     });
   }
-  
   loadLesson(lessonNum) {
     this.currentLesson = lessonNum;
     this.currentPuzzleIndex = null;
+    
+    if (!this.solvedSentences[lessonNum]) {
+      this.solvedSentences[lessonNum] = new Set();
+    }
     
     // Re-populate left sidebar puzzle sentences
     this.sentenceListContainer.innerHTML = '';
@@ -1165,8 +1175,19 @@ class WordCardsApp {
     lesson.sentences.forEach((sentenceObj, idx) => {
       const btn = document.createElement('button');
       btn.className = 'btn btn-sentence-select';
-      btn.innerText = sentenceObj.english;
-      btn.title = sentenceObj.english;
+      btn.dataset.index = idx;
+      
+      const isSolved = this.solvedSentences[this.currentLesson] && this.solvedSentences[this.currentLesson].has(idx);
+      if (isSolved) {
+        btn.innerText = `Q${idx + 1}: ✅ ${sentenceObj.english}`;
+        btn.title = sentenceObj.english;
+        btn.classList.add('solved');
+      } else {
+        btn.innerText = `Q${idx + 1}: ${sentenceObj.chinese}`;
+        btn.title = sentenceObj.chinese;
+        btn.classList.remove('solved');
+      }
+      
       btn.addEventListener('click', () => this.loadPuzzle(idx));
       this.sentenceListContainer.appendChild(btn);
     });
@@ -1177,7 +1198,6 @@ class WordCardsApp {
     // Reload cards for the current mode
     this.resetCanvas();
   }
-  
   switchMode(mode) {
     this.currentMode = mode;
     
@@ -1264,13 +1284,7 @@ class WordCardsApp {
   loadPuzzle(idx) {
     this.currentPuzzleIndex = idx;
     
-    // Highlight sidebar active sentence button
-    const buttons = this.sentenceListContainer.querySelectorAll('.btn-sentence-select');
-    buttons.forEach((btn, bIdx) => {
-      if (bIdx === idx) btn.classList.add('active');
-      else btn.classList.remove('active');
-    });
-    
+    this.updateSidebarButtons();
     // Set target translation text
     const sentenceObj = courseData[this.currentLesson].sentences[idx];
     document.getElementById('target-translation').innerText = sentenceObj.chinese;
@@ -1682,6 +1696,13 @@ class WordCardsApp {
         setTimeout(() => card.classList.remove('bounce-animation'), 600);
       });
       
+      // Mark as solved
+      if (!this.solvedSentences[this.currentLesson]) {
+        this.solvedSentences[this.currentLesson] = new Set();
+      }
+      this.solvedSentences[this.currentLesson].add(this.currentPuzzleIndex);
+      this.updateSidebarButtons();
+      
       // Wait slightly then speak sentence
       const fullSentence = courseData[this.currentLesson].sentences[this.currentPuzzleIndex].english;
       setTimeout(() => speakText(fullSentence), 300);
@@ -1774,6 +1795,33 @@ class WordCardsApp {
           slot.style.color = '';
           slot.style.fontWeight = '';
         }, 1500);
+      }
+    });
+  }
+
+  updateSidebarButtons() {
+    const buttons = this.sentenceListContainer.querySelectorAll('.btn-sentence-select');
+    const lesson = courseData[this.currentLesson];
+    
+    buttons.forEach(btn => {
+      const idx = parseInt(btn.dataset.index);
+      const sentenceObj = lesson.sentences[idx];
+      const isSolved = this.solvedSentences[this.currentLesson] && this.solvedSentences[this.currentLesson].has(idx);
+      
+      if (isSolved) {
+        btn.innerText = `Q${idx + 1}: ✅ ${sentenceObj.english}`;
+        btn.title = sentenceObj.english;
+        btn.classList.add('solved');
+      } else {
+        btn.innerText = `Q${idx + 1}: ${sentenceObj.chinese}`;
+        btn.title = sentenceObj.chinese;
+        btn.classList.remove('solved');
+      }
+      
+      if (idx === this.currentPuzzleIndex) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
       }
     });
   }
